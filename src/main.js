@@ -77,11 +77,134 @@ function init() {
   // Setup touch controls for aiming
   setupTouchControls();
 
+  // Setup start screen
+  setupStartScreen();
+
   // Start game loop
   animate();
 
   // Handle window resize
   window.addEventListener("resize", onWindowResize);
+}
+
+function setupStartScreen() {
+  const startButton = document.getElementById("startButton");
+  const startScreen = document.getElementById("startScreen");
+
+  startButton.addEventListener("click", () => {
+    isGameStarted = true;
+    startScreen.style.display = "none";
+    animate();
+  });
+}
+
+function addStars() {
+  const starGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+  const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+  for (let i = 0; i < 200; i++) {
+    const star = new THREE.Mesh(starGeometry, starMaterial);
+    star.position.x = (Math.random() - 0.5) * 100;
+    star.position.y = (Math.random() - 0.5) * 100;
+    star.position.z = (Math.random() - 0.5) * 100;
+    scene.add(star);
+  }
+}
+
+function setupMobileControls() {
+  const upButton = document.getElementById("upButton");
+  const downButton = document.getElementById("downButton");
+  const fireButton = document.getElementById("fireButton");
+
+  upButton.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    isMovingUp = true;
+  });
+
+  upButton.addEventListener("touchend", (e) => {
+    e.preventDefault();
+    isMovingUp = false;
+  });
+
+  downButton.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    isMovingDown = true;
+  });
+
+  downButton.addEventListener("touchend", (e) => {
+    e.preventDefault();
+    isMovingDown = false;
+  });
+
+  fireButton.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    if (isGameStarted) {
+      shootLaser();
+    }
+  });
+}
+
+function spawnShip() {
+  const types = Object.keys(SHIP_TYPES);
+  const type = types[Math.floor(Math.random() * types.length)];
+  const shipType = SHIP_TYPES[type];
+
+  const geometry = new THREE.BoxGeometry(
+    shipType.size,
+    shipType.size,
+    shipType.size
+  );
+  const material = new THREE.MeshBasicMaterial({ color: shipType.color });
+  const ship = new THREE.Mesh(geometry, material);
+
+  // Random position
+  ship.position.x = (Math.random() - 0.5) * 20;
+  ship.position.y = (Math.random() - 0.5) * 20;
+  ship.position.z = -50;
+
+  // Random movement pattern
+  ship.userData.type = type;
+  ship.userData.speed = shipType.speed;
+  ship.userData.movementPattern = Math.floor(Math.random() * 3);
+  ship.userData.movementTime = 0;
+
+  scene.add(ship);
+  ships.push(ship);
+}
+
+function updateShips() {
+  for (let i = ships.length - 1; i >= 0; i--) {
+    const ship = ships[i];
+    ship.userData.movementTime += 0.01;
+
+    // Update position based on movement pattern
+    switch (ship.userData.movementPattern) {
+      case 0: // Straight line
+        ship.position.z += ship.userData.speed;
+        break;
+      case 1: // Sine wave
+        ship.position.z += ship.userData.speed;
+        ship.position.x += Math.sin(ship.userData.movementTime) * 0.1;
+        break;
+      case 2: // Circle
+        ship.position.z += ship.userData.speed;
+        ship.position.x += Math.cos(ship.userData.movementTime) * 0.1;
+        ship.position.y += Math.sin(ship.userData.movementTime) * 0.1;
+        break;
+    }
+
+    // Remove ships that are too close or too far
+    if (ship.position.z > 0 || ship.position.z < -100) {
+      scene.remove(ship);
+      ships.splice(i, 1);
+    }
+  }
+}
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
 function setupTouchControls() {
@@ -322,4 +445,5 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-// ... rest of the existing code ...
+// Start the game
+init();
